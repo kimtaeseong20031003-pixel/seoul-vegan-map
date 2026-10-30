@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SEOUL VEGAN MAP — 서울 비건 식당 지도</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#f4f6f0;--paper:#fff;--ink:#1c2c22;--muted:#718075;--line:#e2e9df;--green:#28794d;--green2:#e8f3e9;--gold:#b98226;--purple:#8062b0;--shadow:0 12px 35px rgba(32,55,37,.08)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Pretendard,"Noto Sans KR",Arial,sans-serif}
+.topbar{height:66px;background:#15251b;color:#f4f8f1;display:flex;align-items:center;justify-content:space-between;padding:0 max(24px,calc((100vw - 1500px)/2))}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.04em}.brand-mark{width:34px;height:34px;border-radius:11px;background:#d9eed9;color:#235d3b;display:grid;place-items:center;font-size:20px}.topnote{font-size:12px;color:#c2d2c3}
+.shell{max-width:1500px;margin:auto;padding:30px 24px 50px}.hero{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:23px}.eyebrow{font-size:11px;letter-spacing:.16em;font-weight:800;color:var(--green);margin-bottom:9px}
+h1{font-size:clamp(27px,3vw,39px);letter-spacing:-.055em;margin:0 0 8px;font-weight:850}.lead{color:var(--muted);font-size:14px;line-height:1.65;margin:0}.hero-badge{border:1px solid #d8e5d7;background:#edf5eb;color:#326b45;border-radius:999px;padding:10px 14px;font-size:12px;font-weight:700;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}.stat{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:15px 18px;box-shadow:0 3px 14px rgba(32,55,37,.025)}.stat strong{font-size:24px;letter-spacing:-.04em;display:block}.stat span{font-size:12px;color:var(--muted)}
+.workspace{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(380px,1fr);gap:18px;align-items:start}.panel{background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.panel-head{padding:17px 19px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.panel-head h2{font-size:16px;margin:0}.panel-head p{font-size:11px;color:var(--muted);margin:4px 0 0}
+.map-tools{display:flex;gap:8px;align-items:center}.map-tools label{font-size:12px;color:#526257;display:flex;gap:6px;align-items:center;cursor:pointer}input[type=checkbox]{accent-color:var(--green);width:15px;height:15px}
+#map{height:690px;width:100%;background:#e9eee6}.map-legend{display:flex;gap:13px;flex-wrap:wrap;padding:12px 17px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}.legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.right-panel{padding:17px}.searchrow{display:flex;gap:8px;margin-bottom:12px}.search{width:100%;border:1px solid var(--line);background:#f8faf6;border-radius:12px;padding:12px 14px;font:inherit;font-size:13px;outline:none}.search:focus{border-color:#78a987;box-shadow:0 0 0 3px #e8f3e9}
+.filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}.filter{border:1px solid var(--line);background:#fff;color:#536157;border-radius:999px;padding:8px 11px;font-size:11px;font-weight:700;cursor:pointer}.filter.active{background:#1f6a40;color:#fff;border-color:#1f6a40}
+.resultline{display:flex;align-items:center;justify-content:space-between;margin:10px 1px 12px;font-size:12px;color:var(--muted)}.resultline strong{color:var(--ink)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:610px;overflow:auto;padding:1px 4px 4px 1px}
+.card{border:1px solid var(--line);border-radius:15px;padding:13px 13px 12px;background:#fff;cursor:pointer;transition:.18s;min-width:0}.card:hover,.card.selected{border-color:#76a985;box-shadow:0 5px 16px rgba(37,100,57,.10);transform:translateY(-1px)}
+.cardtop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.card h3{font-size:14px;margin:0 0 6px;line-height:1.35}.type{font-size:10px;border-radius:999px;padding:4px 7px;white-space:nowrap;font-weight:700}.type.vegan_only{background:#e8f3e9;color:#276a40}.type.mixed{background:#fff0dc;color:#96641c}.type.request{background:#e8f0ff;color:#365d9b}.type.vegetarian{background:#f0eafb;color:#70539e}.type.review_only{background:#eef0f2;color:#59636f}
+.area{font-size:11px;color:#819085;margin-bottom:9px}.desc{font-size:11px;color:#58685d;line-height:1.5;margin-bottom:8px}.hours{font-size:11px;line-height:1.5;color:#435449;background:#f5f8f3;border-radius:9px;padding:8px;margin-bottom:8px}.hours b{color:#244d34}.address{font-size:10px;color:#8a968c;line-height:1.45;min-height:27px}
+.cardfoot{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:9px}.status{font-size:9px;color:#5f8067;line-height:1.4}.maplink{font-size:10px;color:#28794d;text-decoration:none;font-weight:800;white-space:nowrap}
+.notice{margin-top:14px;background:#f8f6ef;border:1px solid #eee7d7;color:#75684f;padding:12px 14px;border-radius:12px;font-size:11px;line-height:1.65}.sources{margin-top:18px;padding:17px 19px;background:#eaf0e8;border-radius:16px;font-size:11px;color:#627166;line-height:1.8}.sources a{color:#326f49}
+.leaflet-popup-content-wrapper{border-radius:12px}.leaflet-popup-content{font-family:inherit;font-size:12px;line-height:1.6}.restaurant-pin{width:18px;height:18px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px #0004}.station-pin{font-size:17px;filter:drop-shadow(0 1px 2px #fff)}
+.empty{grid-column:1/-1;padding:24px;text-align:center;border:1px dashed var(--line);border-radius:13px;color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:1050px){.workspace{grid-template-columns:1fr}.cards{max-height:none}#map{height:560px}}@media(max-width:600px){.shell{padding:22px 13px}.topbar{padding:0 15px}.topnote{display:none}.hero{display:block}.hero-badge{display:inline-block;margin-top:14px}.stats{gap:7px}.stat{padding:12px}.stat strong{font-size:20px}.panel-head{align-items:flex-start;flex-direction:column}.cards{grid-template-columns:1fr 1fr;gap:8px}.card{padding:11px 10px}#map{height:470px}}
+</style></head><body>
+<div class="topbar"><div class="brand"><div class="brand-mark">🌱</div><span>SEOUL VEGAN MAP</span></div><div class="topnote">A LOCAL GUIDE TO PLANT-BASED SEOUL</div></div>
+<main class="shell">
+<section class="hero"><div><div class="eyebrow">PLANT-BASED CITY GUIDE · SEOUL</div><h1>서울 비건 식당 지도</h1><p class="lead">식당의 실제 제공 방식에 따라 분류해 찾아보세요.<br>카테고리를 선택하면 오른쪽 목록뿐 아니라 지도 마커도 함께 바뀝니다.</p></div><div class="hero-badge">DATA REVIEW · 2026.10.30</div></section>
+<section class="stats">
+<div class="stat"><strong id="totalCount">0</strong><span>지도에 등록된 장소</span></div>
+<div class="stat"><strong id="veganCount">0</strong><span>비건 전용 메뉴 식당</span></div>
+<div class="stat"><strong id="mixedCount">0</strong><span>비건 메뉴 선택 가능 장소</span></div>
+</section>
+<div class="workspace">
+<section class="panel"><div class="panel-head"><div><h2>서울 전체 지도</h2><p>실제 도로·하천·지형 기반 · 마커를 누르면 상세 정보 확인</p></div><div class="map-tools"><label><input type="checkbox" id="stationsToggle" checked> 🚇 지하철역</label></div></div>
+<div id="map"></div><div class="map-legend"><span><i class="legend-dot" style="background:#28794d"></i>비건만 제공</span><span><i class="legend-dot" style="background:#d69a36"></i>비건+일반 메뉴</span><span><i class="legend-dot" style="background:#4776b8"></i>요청 시 비건</span><span><i class="legend-dot" style="background:#8062b0"></i>채식 전문</span><span><i class="legend-dot" style="background:#8a929b"></i>리뷰 언급·미확인</span><span>🚇 지하철역</span></div></section>
+<section class="panel right-panel"><div class="searchrow"><input id="search" class="search" placeholder="식당명, 지역, 주소 검색…"></div>
+<div class="filters">
+<button class="filter active" data-filter="all">전체</button>
+<button class="filter" data-filter="vegan_only">비건만 제공</button>
+<button class="filter" data-filter="mixed">비건 + 일반 메뉴</button>
+<button class="filter" data-filter="request">비건 요청 시</button>
+<button class="filter" data-filter="vegetarian">채식 전문</button>
+<button class="filter" data-filter="review_only">리뷰 언급·미확인</button>
+</div>
+<div class="resultline"><span><strong id="shownCount">0곳</strong> 표시 중</span><span>선택한 카테고리만 지도에 표시</span></div>
+<div id="cards" class="cards"></div>
+<div class="notice"><b>분류 기준</b><br>
+<b>비건만 제공:</b> 공개된 업체 소개나 메뉴에서 전 메뉴 식물성으로 확인된 곳.<br>
+<b>비건 + 일반 메뉴:</b> 비건 메뉴가 있으나 비건 전용점으로 확인되지 않은 곳.<br>
+<b>비건 요청 시:</b> 주문 시 별도 요청으로 비건 조리가 가능하다고 명시적으로 확인된 곳.<br>
+<b>채식 전문:</b> 채식·사찰음식 중심이지만 유제품·달걀·꿀 등까지 비건인지 확정하기 어려운 곳.<br>
+리뷰 언급·미확인: 리뷰나 커뮤니티 목록에서 비건 관련 언급은 발견됐지만, 현재 메뉴와 조리 가능 여부를 확인하지 못한 곳입니다. 이번 조사에서는 위치와 식당 실체까지 교차 확인된 사례만 지도에 등록했으며, 확인되지 않은 리뷰 후보는 숫자에 포함하지 않았습니다.<br>요청 시 비건 카테고리 역시 명시적으로 확인된 사례를 확보하지 못해 임의로 식당을 넣지 않았습니다.
+</div></section></div>
+<div class="sources"><b>자료 출처</b><br>
+<a href="https://english.visitseoul.net/restaurants/PLANT/ENPwcrlov" target="_blank">Visit Seoul · PLANT</a> ·
+<a href="https://english.visitseoul.net/gangnamarea/MahinaVeganTable/ENPwmy08p" target="_blank">Visit Seoul · Mahina Vegan Table</a> ·
+<a href="https://english.visitseoul.net/restaurants/jumjumjumjumjumjum/ENPb30c47" target="_blank">Visit Seoul · jumjumjumjumjumjum</a> ·
+<a href="https://english.visitseoul.net/restaurants/PranaTable/ENPd851cn" target="_blank">Visit Seoul · Prana Table</a> ·
+<a href="https://english.visitseoul.net/restaurants/maji/ENPjju3ll" target="_blank">Visit Seoul · Maji</a><br>
+<a href="https://visitgangnam.net/en/places/plantude" target="_blank">Visit Gangnam · Plantude</a> ·
+<a href="https://sites.google.com/view/ohsegyehyang/home" target="_blank">오세계향 공식 홈페이지</a> ·
+<a href="https://guide.michelin.com/en/seoul-capital-area/kr-seoul/restaurant/legume" target="_blank">MICHELIN Guide · Légume</a> ·
+<a href="https://www.plantspack.com/vegan-places/south-korea/seoul/fully-vegan" target="_blank">PlantsPack · Seoul vegan listings</a> ·
+<a href="https://dealseoul.com/vegan-restaurants" target="_blank">DealSeoul · Vegan eats</a><br>
+<b>지도:</b> © OpenStreetMap contributors. 외부 지도 타일 사용. 식당 위치는 주소를 기반으로 한 참고 좌표이며 건물 출입구 단위의 현장 측량값은 아닙니다.
+</div></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const places=[
+{id:1,name:"플랜트 (PLANT)",area:"이태원 · 용산구",type:"vegan_only",desc:"공식 관광정보에서 100% 비건 레스토랑·베이커리 카페로 소개.",hours:"11:00–22:00 · 브레이크 15:00–17:00 · 월요일 휴무",address:"용산구 보광로 117, 2층",lat:37.5346,lng:126.9948,check:"Visit Seoul 공개정보",source:"https://english.visitseoul.net/restaurants/PLANT/ENPwcrlov"},
+{id:2,name:"플랜튜드 코엑스점",area:"삼성동 · 강남구",type:"vegan_only",desc:"식물성 메뉴 중심의 비건 레스토랑. 지점별 메뉴·운영 확인 권장.",hours:"매일 11:00–21:00 (공개 관광정보 기준)",address:"강남구 영동대로 513, 스타필드 코엑스몰 B1",lat:37.5114,lng:127.0592,check:"Visit Gangnam 공개정보",source:"https://visitgangnam.net/en/places/plantude"},
+{id:3,name:"마히나 비건 테이블",area:"신사동 · 강남구",type:"vegan_only",desc:"공식 관광정보에서 모든 메뉴를 식물성 재료로 만드는 비건 레스토랑으로 소개.",hours:"월–토 12:00–16:30, 17:00–21:00 · 일요일 휴무",address:"강남구 논현로175길 75, 2층",lat:37.5242,lng:127.0258,check:"Visit Seoul · 2026년 10월 수정",source:"https://english.visitseoul.net/gangnamarea/MahinaVeganTable/ENPwmy08p"},
+{id:4,name:"Légume (레귬)",area:"신사동 · 강남구",type:"vegan_only",desc:"미쉐린 가이드가 식물성 재료만 사용하는 비건·베지테리언 레스토랑으로 소개.",hours:"화–토 12:00–15:00, 18:00–22:00 · 월·일 휴무",address:"강남구 강남대로 652 신사스퀘어 2층",lat:37.5168,lng:127.0198,check:"MICHELIN Guide 영업정보",source:"https://guide.michelin.com/en/seoul-capital-area/kr-seoul/restaurant/legume"},
+{id:5,name:"오세계향",area:"인사동 · 종로구",type:"vegan_only",desc:"공식 홈페이지에서 모든 음식·반찬·육수·소스를 식물성 재료로 만든다고 명시.",hours:"매일 11:30–16:00, 17:00–21:00 · 목요일 휴무 · 라스트오더 20:00",address:"종로구 인사동12길 14-5",lat:37.5739,lng:126.9853,check:"식당 공식 홈페이지",source:"https://sites.google.com/view/ohsegyehyang/home"},
+{id:6,name:"알트에이 (ALT.A)",area:"이태원 · 용산구",type:"vegan_only",desc:"식물성 재료로 한식·중식 스타일 요리를 만드는 비건 전문점으로 등록.",hours:"영업시간 미확인 · 방문 전 업체 확인",address:"용산구 이태원·한남동 권역 (정확한 지점 주소 확인 필요)",lat:37.5340,lng:126.9955,check:"비건 장소 목록 교차참조 · 주소 추가 확인 필요",source:"https://www.plantspack.com/vegan-places/south-korea/seoul/fully-vegan"},
+{id:7,name:"슬런치팩토리",area:"홍대 · 마포구",type:"vegan_only",desc:"비건 이탈리안·한식 메뉴를 전문으로 소개하는 식당.",hours:"10:00–22:00 · 라스트오더 21:00 (관광정보 기준)",address:"마포구 와우산로 94, 아트앤디자인밸리 B119",lat:37.5507,lng:126.9252,check:"Visit Seoul 공개정보",source:"https://english.visitseoul.net/restaurants/SLUNCHFACTORY/ENP4tx96n"},
+{id:8,name:"써니보울",area:"염리동 · 마포구",type:"vegan_only",desc:"샐러드볼·곡물볼 등 식물성 식사를 제공하는 곳으로 관광정보에 소개.",hours:"11:10–22:00 · 브레이크 15:25–16:45 · 일요일 휴무 (관광정보 기준)",address:"마포구 숭문16길 18",lat:37.5483,lng:126.9450,check:"Visit Seoul 공개정보",source:"https://korean.visitseoul.net/mapo-around/SUNNYBOWL/KOP17t00b"},
+{id:9,name:"점점점점점점",area:"상암동 · 마포구",type:"vegan_only",desc:"예약제 8코스 비건 메뉴를 제공하는 비건 문화·전시 공간.",hours:"수–목 11:30–16:00 · 금–일 11:30–22:00 · 브레이크 16:00–17:00 · 월·화 휴무",address:"마포구 성암로15길 36, 1층",lat:37.5787,lng:126.8975,check:"Visit Seoul · 2026년 정보",source:"https://english.visitseoul.net/restaurants/jumjumjumjumjumjum/ENPb30c47"},
+{id:10,name:"프라나 테이블",area:"서울숲 · 성동구",type:"vegan_only",desc:"비건 카페. 아사이볼·두부 채소 랩 등 식물성 메뉴 소개.",hours:"월–금 10:00–20:00 · 토–일 09:00–19:00",address:"성동구 성수일로3길 9, 2층 루프탑",lat:37.5444,lng:127.0452,check:"Visit Seoul · 2026년 10월 공개정보",source:"https://english.visitseoul.net/restaurants/PranaTable/ENPd851cn"},
+{id:11,name:"베지터스 (Vegetus)",area:"해방촌 · 용산구",type:"vegan_only",desc:"비건 버거·파스타 등을 제공하는 비건 레스토랑으로 소개.",hours:"영업시간 미확인 · 방문 전 업체 확인",address:"용산구 신흥로 22-12",lat:37.5442,lng:126.9855,check:"비건 식당 가이드 등재 · 시간 재확인 필요",source:"https://www.plantspack.com/vegan-places/south-korea/seoul/fully-vegan"},
+{id:12,name:"칙피스 (Chick Peace)",area:"성수 · 성동구",type:"mixed",desc:"중동·지중해식 메뉴 중 비건 선택지가 있는 곳으로 안내됨. 일반 메뉴와 조리도구 공유 여부는 주문 전 확인.",hours:"영업시간 미확인 · 지점 공지 확인",address:"성동구 성수동 일대 · 정확한 주소 확인 필요",lat:37.5455,lng:127.0568,check:"DealSeoul 비건 옵션 목록",source:"https://dealseoul.com/vegan-restaurants"},
+{id:13,name:"한낮의밤",area:"성수 · 성동구",type:"mixed",desc:"일반 메뉴와 함께 비건 요리 선택지가 있는 곳으로 목록에 등록.",hours:"영업시간 미확인 · 업체 공지 확인",address:"성동구 성수동 일대 · 정확한 주소 확인 필요",lat:37.5460,lng:127.0582,check:"DealSeoul 비건 옵션 목록",source:"https://dealseoul.com/vegan-restaurants"},
+{id:14,name:"마지",area:"체부동 · 종로구",type:"vegetarian",desc:"전통 한식 채식 요리 전문. 사찰음식 계열 메뉴이며 비건 여부는 메뉴별 확인 권장.",hours:"수–토 11:30–20:00 · 브레이크 15:00–17:30 · 일 11:30–15:00 · 월·화 휴무",address:"종로구 자하문로5길 19",lat:37.5760,lng:126.9715,check:"Visit Seoul · 2026년 9월 수정",source:"https://english.visitseoul.net/restaurants/maji/ENPjju3ll"},
+{id:15,name:"발우공양",area:"인사동 · 종로구",type:"vegetarian",desc:"사찰음식 전문점. 사찰음식은 일반적으로 육류·어류를 사용하지 않지만 세부 식재료는 코스별 문의 권장.",hours:"영업시간 미확인 · 예약 및 업체 확인",address:"종로구 우정국로 56",lat:37.5732,lng:126.9830,check:"비건·채식 장소 목록 교차참조",source:"https://www.plantspack.com/vegan-places/south-korea/seoul/fully-vegan"},
+{id:16,name:"산촌",area:"인사동 · 종로구",type:"vegetarian",desc:"한국 사찰음식 코스 중심. 유제품·꿀 등 세부 식재료는 예약 전 확인.",hours:"영업시간 미확인 · 예약 및 업체 확인",address:"종로구 인사동길 30-13",lat:37.5747,lng:126.9857,check:"서울 채식 가이드 교차참조",source:"https://www.seoultourism.org/vegetarian-vegan-seoul/"},
+{id:17,name:"수카라",area:"홍대 · 마포구",type:"vegetarian",desc:"채식·제철 식재료 중심으로 알려진 식당. 전 메뉴 비건 여부는 확인되지 않음.",hours:"영업시간 미확인 · 방문 전 업체 확인",address:"마포구 서교동 권역 · 정확한 주소 확인 필요",lat:37.5540,lng:126.9235,check:"서울 비건·채식 장소 목록 등재",source:"https://www.plantspack.com/vegan-places/south-korea/seoul/fully-vegan"}
+,{id:18,name:"비건인사",area:"익선동 · 종로구",type:"vegan_only",desc:"한식과 현대적인 메뉴를 제공하는 올비건 식당. HappyCow 리뷰와 업체 정보에서 비건 전문점으로 확인.",hours:"11:30–15:00, 17:00–20:00 (공개 목록 기준, 방문 전 확인)",address:"종로구 삼일대로32가길 12-4",lat:37.5738,lng:126.9903,check:"업체 정보·HappyCow 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+,{id:19,name:"남미플랜트랩",area:"방배동 · 서초구",type:"vegan_only",desc:"피자·파스타·라자냐 등 이탈리안 스타일의 100% 식물성 메뉴를 제공.",hours:"점심·저녁 운영, 요일별 시간 차이 있음 · 방문 전 확인",address:"서초구 방배천로4안길 55, 2층",lat:37.4814,lng:126.9818,check:"서울 식당 정보·업체 리뷰",source:"https://english.visitseoul.net/"}
+,{id:20,name:"비건카페 달냥",area:"혜화 · 종로구",type:"vegan_only",desc:"식사 메뉴와 두유 아이스크림·디저트를 제공하는 올비건 카페 겸 식당.",hours:"공개 정보에 따라 변동 · 방문 전 확인",address:"종로구 혜화로 45, 2층",lat:37.5826,lng:127.0007,check:"업체 정보·이용자 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+,{id:21,name:"byTOFU (바이두부)",area:"해방촌 · 용산구",type:"vegan_only",desc:"두부를 활용한 샌드위치·랩·볼 메뉴 중심의 식물성 카페.",hours:"09:00–16:00 공개 목록 기준 · 휴무일 변동 가능",address:"용산구 소월로20길 10",lat:37.5442,lng:126.9865,check:"업체 정보·이용자 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+,{id:22,name:"몽크스부처 이태원점",area:"이태원 · 용산구",type:"vegan_only",desc:"식물성 버거·파스타·퓨전 요리를 제공하는 비건 레스토랑으로 소개됨.",hours:"점심·저녁 운영 · 방문 전 최신 영업시간 확인",address:"용산구 이태원로 228-1",lat:37.5345,lng:126.9940,check:"업체 정보·이용자 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+,{id:23,name:"베지그린",area:"개포동 · 강남구",type:"vegan_only",desc:"한식 반찬과 식사를 뷔페 형식으로 제공하는 비건 식당.",hours:"점심·저녁 운영 · 브레이크타임 및 휴무 확인",address:"강남구 개포로20길 24-10",lat:37.4788,lng:127.0569,check:"업체 정보·이용자 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+,{id:24,name:"아케미 (AcheMi)",area:"성북구 · 한성대입구",type:"vegan_only",desc:"쌀우유 베이스의 비건 아이스크림·빙수·케이크를 판매. 이용자 리뷰에서 비건 디저트로 반복 언급.",hours:"화–일 11:30–21:30 · 월요일 휴무 (공개 정보 기준)",address:"성북구 창경궁로 318",lat:37.5895,lng:127.0000,check:"HappyCow 리뷰·업체 정보",source:"https://www.happycow.net/reviews/achemi-seoul-190670/"}
+,{id:25,name:"코코너즘 (Coconuzm)",area:"충무로 · 중구",type:"vegan_only",desc:"코코넛밀크 기반의 비건 젤라또와 소르베를 제공하는 디저트 전문점.",hours:"12:00–21:30 공개 정보 기준 · 방문 전 확인",address:"중구 퇴계로36길 32",lat:37.5605,lng:126.9920,check:"업체 정보·이용자 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+,{id:26,name:"달리아 다이닝",area:"신사동 · 강남구",type:"vegan_only",desc:"파스타·피자·뇨끼 등 식물성 기반의 비건 다이닝. 리뷰에서 비건 메뉴와 디저트가 구체적으로 언급됨.",hours:"점심 12:00–15:00 · 저녁 18:00–21:00 공개 정보 기준",address:"강남구 도산대로45길 14 일대",lat:37.5246,lng:127.0350,check:"업체 정보·이용자 리뷰",source:"https://www.happycow.net/asia/south_korea/seoul/"}
+];
+const map=L.map('map',{scrollWheelZoom:true}).setView([37.555,126.985],11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+const markers=new Map(),stationLayer=L.layerGroup().addTo(map);
+const stationData=[["서울역",37.5547,126.9707],["시청",37.5657,126.9769],["종각",37.5702,126.9831],["종로3가",37.5710,126.9918],["을지로입구",37.5660,126.9826],["홍대입구",37.5574,126.9245],["합정",37.5496,126.9139],["상수",37.5478,126.9227],["이대",37.5568,126.9460],["공덕",37.5440,126.9516],["숙대입구",37.5446,126.9721],["이태원",37.5345,126.9947],["한강진",37.5396,127.0017],["신사",37.5164,127.0203],["압구정",37.5271,127.0286],["성수",37.5446,127.0557],["서울숲",37.5436,127.0447],["삼성",37.5089,127.0632],["강남",37.4979,127.0276],["양재",37.4845,127.0340],["여의도",37.5216,126.9243],["잠실",37.5133,127.1001]];
+stationData.forEach(s=>L.marker([s[1],s[2]],{icon:L.divIcon({className:'station-pin',html:'🚇',iconSize:[20,20],iconAnchor:[10,10]})}).bindTooltip(s[0]).addTo(stationLayer));
+const colors={vegan_only:'#28794d',mixed:'#d69a36',request:'#4776b8',vegetarian:'#8062b0',review_only:'#8a929b'};
+const typeNames={vegan_only:'비건 메뉴 확인',mixed:'비건 + 일반 메뉴',request:'비건 요청 시',vegetarian:'채식 전문',review_only:'리뷰 언급·미확인'};
+function makeIcon(type){return L.divIcon({className:'',html:`<div class="restaurant-pin" style="background:${colors[type]}"></div>`,iconSize:[18,18],iconAnchor:[9,9]})}
+places.forEach(p=>{const m=L.marker([p.lat,p.lng],{icon:makeIcon(p.type)}).bindPopup(`<b>${p.name}</b><br>${typeNames[p.type]}<br>${p.area}<br>${p.hours}<br><a href="${p.source}" target="_blank">정보 출처</a>`);markers.set(p.id,m)});
+let filter='all',selected=null;
+function filtered(){const q=document.getElementById('search').value.trim().toLowerCase();return places.filter(p=>(filter==='all'||p.type===filter)&&(!q||[p.name,p.area,p.address,p.desc].join(' ').toLowerCase().includes(q)))}
+function render(){
+ const list=filtered(),visibleIds=new Set(list.map(p=>p.id));
+ places.forEach(p=>{const m=markers.get(p.id);if(visibleIds.has(p.id)){if(!map.hasLayer(m))m.addTo(map)}else if(map.hasLayer(m))map.removeLayer(m)});
+ document.getElementById('shownCount').textContent=list.length+'곳';
+ const cards=document.getElementById('cards');
+ if(!list.length){cards.innerHTML=filter==='request'?'<div class="empty">현재 공개 자료에서 “주문 시 비건으로 별도 조리 가능”하다고 명확히 확인된 식당을 찾지 못했습니다.<br>확인되지 않은 식당을 임의로 등록하지 않았습니다.</div>':'<div class="empty">검색 결과가 없습니다.</div>';return}
+ cards.innerHTML=list.map(p=>`<article class="card ${selected===p.id?'selected':''}" data-id="${p.id}">
+ <div class="cardtop"><h3>${p.name}</h3><span class="type ${p.type}">${typeNames[p.type]}</span></div>
+ <div class="area">${p.area}</div><div class="desc">${p.desc}</div><div class="hours"><b>◷ 영업시간</b><br>${p.hours}</div>
+ <div class="address">${p.address}</div><div class="cardfoot"><span class="status">ⓘ ${p.check}</span><a class="maplink" href="${p.source}" target="_blank" rel="noopener">출처 ↗</a></div></article>`).join('');
+ document.querySelectorAll('.card').forEach(el=>el.addEventListener('click',e=>{if(e.target.closest('a'))return;const id=Number(el.dataset.id),p=places.find(x=>x.id===id);selected=id;map.setView([p.lat,p.lng],15);markers.get(id).openPopup();render()}));
+}
+document.getElementById('search').addEventListener('input',()=>{selected=null;render()});
+document.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.filter;selected=null;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));render()}));
+document.getElementById('stationsToggle').addEventListener('change',e=>e.target.checked?stationLayer.addTo(map):map.removeLayer(stationLayer));
+document.getElementById('totalCount').textContent=places.length;
+document.getElementById('veganCount').textContent=places.filter(p=>p.type==='vegan_only').length;
+document.getElementById('mixedCount').textContent=places.filter(p=>p.type==='mixed').length;
+render();
+</script></body></html>
